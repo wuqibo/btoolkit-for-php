@@ -10,23 +10,18 @@ class BUtils{
     }
 
     //存储Session
-    static function saveSession($key,$value){
+    static function setSession($key,$value){
         if(!session_id())session_start();
         $_SESSION[$key] = $value;
     }
 
     //读取Session
-    static function readSession($key){
+    static function getSession($key){
         if(!session_id())session_start();
-        return $_SESSION[$key];
-    }
-
-    //服务器：判断是否是合法的客户端访问
-    static function clientHasAuthority(){
-        if(isset($_POST['executekey'])){
-            return RSATool::decryptByPrivateKey($_POST['executekey'])=='jiangjiumengclient';
+        if(isset($_SESSION[$key])) {
+            return $_SESSION[$key];
         }
-        return false;
+        return null;
     }
 
     //服务器：获取自定义的header数据
@@ -46,17 +41,39 @@ class BUtils{
         }
         return $headers;
     }
-	
-	//表中存在token
-	static function haveToken($token){
-		if(DB::connect_db()){
-		    $result = DB::query("select * from " . TABLE_TOKENS . " where token ='" . $token . "'");
-		    if($result->rowCount() > 0){
-				return true;
-		    }
-		}
-		return false;
-	}
+
+    //获取当前页面的名字
+    static function getCurrPageName(){
+        $php_self=substr($_SERVER['PHP_SELF'],strrpos($_SERVER['PHP_SELF'],'/')+1);
+        return $php_self;
+    }
+
+    //获取当前页面的名字
+    static function getParamsFromUrl(){
+        $params = $_SERVER['QUERY_STRING'];
+        if(!empty($params)){
+            return $params;
+        }
+        return '';
+    }
+
+    //获取不带参数的完整url
+    static function getFullURLWithoutParams(){
+        $urlProtocol = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
+        $url = $urlProtocol.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'];
+        return $url;
+    }
+
+    //获取当前页面的完整url
+    static function getFullURL(){
+        $urlProtocol = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
+        $url = $urlProtocol.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'];
+        $params = $_SERVER['QUERY_STRING'];
+        if(!empty($params)){
+            $url = $url.'?'.$params;
+        }
+        return $url;
+    }
 
     //本页不缓存
     static function dontCache(){
@@ -84,6 +101,11 @@ class BUtils{
     //设置页面编码
     static function setPageCharset(){
         header("Content-type: text/html; charset=utf-8");
+    }
+
+    //判断字符串里是否存在某个字符串
+    static function equals($str1,$str2){
+        return strcmp($str1,$str2)==0;
     }
 
     //判断字符串里是否存在某个字符串
@@ -169,5 +191,11 @@ class BUtils{
             curl_close($ch);
             return 'error:'.$error;
         }
+    }
+    
+    //去掉文件名后缀
+    static function removeFileNameSuffix($fileFullName){
+        $fileNameNoSuffix = str_replace(strrchr($fileFullName, "."),"",$fileFullName);
+        return $fileNameNoSuffix;
     }
 }
